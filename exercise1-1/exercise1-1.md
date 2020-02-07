@@ -75,7 +75,7 @@ were minimal. The overall delays in September, October, and November
 were less, but the delays began to increased significantly in December.
 For all other months, April had shorter delays in average. And the
 overall Arrival Delay had very similar trend with the Departure Delay,
-which make me believe that there is a stron connection to between the
+which make me believe that there is a strong connection between the
 Departure Delay and Arrival Delay. And the Delay trend didn’t just apply
 to Austin Airport but all other airports in the U.S. In conclusion, if
 you want to choose a time to travel to Austin, Autumn(Sep-Nov) will be
