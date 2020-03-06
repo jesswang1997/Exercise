@@ -1,0 +1,397 @@
+---
+title: "Exercise2-3 Xuechun Wang & Hanqi Liu"
+output: md_document
+---
+
+Exercise 2-3
+========================================================
+- Course: Data Mining and Statistical Learning (ECO395M)
+- Name: Xuechun Wang (xw5996)、Hanqi Liu(hl27963)
+- Date: March 6th, 2020
+- Data Source: online_news.csv
+
+Preparation for model building
+========================================================
+Before building model, we need to choose the right form of "shares".
+Here is a histogram of "shares":
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(readr)
+library(foreach)
+library(tidyverse)
+online_news <- read_csv("online_news.csv")
+
+online_news$viral <- ifelse(online_news$shares > 1400, 1, 0)
+
+
+hist(online_news$shares)
+```
+ 
+From the histogram, we can see that "shares" is hugely skewed, so we probably want a log transformation for "shares". Here is a histogram of "log(shares)":
+
+```{r, echo=FALSE}
+hist(log(online_news$shares))
+```
+
+First approach: build the best model
+========================================================
+- First, build a baseline model with log(shares) versus all variables except url
+
+```{r, echo=FALSE, comment=NA}
+lm1 = lm(log(shares) ~ . - url -viral, data=online_news)
+summary(lm1)
+```
+
+- Second, drop things that seem (nearly) perfectly collinear with other variables
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+lm2 = lm(log(shares) ~ . - url - n_tokens_content - self_reference_max_shares -
+           weekday_is_saturday - weekday_is_sunday - is_weekend -
+           max_positive_polarity - min_negative_polarity - viral,
+         data=online_news)
+summary(lm2)
+```
+
+- Third, use stepwise selection to build a "best" model. In order to save the running time of the program，we choose steps = 2 here, to improve just a little bit from the baseline model
+
+```{r, include=FALSE, message=FALSE, warning=FALSE, comment=NA}
+lm_step1 = step(lm2, scope=~(.)^2, steps = 2)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+getCall(lm_step1)
+summary(lm_step1)
+```
+
+First approach: asses the "best" model
+========================================================
+In order to asses the "best" model, we will report the confusion matrix, overall error rate, true positive rate, and false positive rate for the best model here. To get more accurate result, we will average these quantities across multiple train/test splits. And we will use three different method to get the average results in this model and choose 1 method to apply to all other models.
+
+- method 1: collect all predictions and corresponding "viral" value from all test set and put them in one confusion matrix, calculate overall error rate, true positive rate, and false positive rate base on this confusion matrix. Here is the confusion matrix:
+
+```{r, include=FALSE, message=FALSE, warning=FALSE, comment=NA}
+m11.1 <- vector()
+m12.1 <- vector()
+m21.1 <- vector()
+m22.1 <- vector()
+
+ii = 1:100
+foreach (i = ii, .combine='c') %do% {
+  i.train <- sample (nrow (online_news), size=nrow (online_news) *.8, replace=FALSE)
+  online_train <- online_news [ i.train, ]
+  online_test  <- online_news [- i.train,]
+  online_test_predict1 = predict(lm_step1, online_test)
+  yhat_test_online1 = ifelse(online_test_predict1 > log(1400), 1, 0)
+  y = online_test$viral
+  confusion_out1 = table(y = y, yhat = yhat_test_online1)
+  m11.1[i] = confusion_out1[1,1]
+  m12.1[i] = confusion_out1[1,2]
+  m21.1[i] = confusion_out1[2,1]
+  m22.1[i] = confusion_out1[2,2]
+}
+
+m11.1 = data.frame(I = ii, M11 = m11.1)
+m12.1 = data.frame(I = ii, M12 = m12.1)
+m21.1 = data.frame(I = ii, M21 = m21.1)
+m22.1 = data.frame(I = ii, M22 = m22.1)
+sum.m11.1 = sum(m11.1$M11)
+sum.m12.1 = sum(m12.1$M12)
+sum.m21.1 = sum(m21.1$M21)
+sum.m22.1 = sum(m22.1$M22)
+confusion_sum1 <- matrix(c(sum.m11.1,sum.m12.1,sum.m21.1,sum.m22.1), nrow=2, byrow = TRUE,
+                        dimnames = list(c("0", "1"),
+                                        c("0", "1")))
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+confusion_sum1
+```
+
+overall error rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+error1 = 1-sum(diag(confusion_sum1))/sum(confusion_sum1)
+error1
+```
+
+true positive rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+TPR1 = confusion_sum1[2,2]/(confusion_sum1[2,1]+confusion_sum1[2,2])
+TPR1
+```
+
+false positive rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+FPR1 = confusion_sum1[1,2]/(confusion_sum1[1,1]+confusion_sum1[1,2])
+FPR1
+```
+
+- method 2: Calculate the overall error rate, true positive rate, and false positive rate for each of the confusion matrix (for different test set), and average these quantities
+
+```{r, include=FALSE, message=FALSE, warning=FALSE, comment=NA}
+error2 <- vector()
+TPR2 <- vector()
+FPR2 <- vector()
+
+ii = 1:100
+foreach (i = ii, .combine='c') %do% {
+  i.train <- sample (nrow (online_news), size=nrow (online_news) *.8, replace=FALSE)
+  online_train <- online_news [ i.train, ]
+  online_test  <- online_news [- i.train,]
+  online_test_predict2 = predict(lm_step1, online_test)
+  yhat_test_online2 = ifelse(online_test_predict2 > log(1400), 1, 0)
+  y = online_test$viral
+  confusion_out2 = table(y = y, yhat = yhat_test_online2)
+  error2[i] = 1-sum(diag(confusion_out2))/sum(confusion_out2)
+  TPR2[i] = confusion_out2[2,2]/(confusion_out2[2,1]+confusion_out2[2,2])
+  FPR2[i] = confusion_out2[1,2]/(confusion_out2[1,1]+confusion_out2[1,2])
+}
+
+error2 = data.frame(I = ii, ERROR = error2)
+TPR2 = data.frame(I = ii, tpr = TPR2)
+FPR2 = data.frame(I = ii, fpr = FPR2)
+average.error = mean(error2$ERROR)
+average.TPR = mean(TPR2$tpr)
+average.FPR = mean(FPR2$fpr)
+```
+
+overall error rate:
+
+```{r, echo=FALSE, comment=NA}
+average.error
+```
+
+true positive rate:
+
+```{r, echo=FALSE, comment=NA}
+average.TPR
+```
+
+false positive rate:
+
+```{r, echo=FALSE, comment=NA}
+average.FPR
+```
+
+- method 3: For each of the confusion matrix (for different test set), we have four elements and denote them as [1,1], [1,2], [2,1], [2,2]. We average these four elements respectively across mulitple test sets and build an average confusion matrix, calculate overall error rate, true positive rate, and false positive rate base on this confusion matrix.
+
+average confusion matrix:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+avg.m11.1 = mean(m11.1$M11)
+avg.m12.1 = mean(m12.1$M12)
+avg.m21.1 = mean(m21.1$M21)
+avg.m22.1 = mean(m22.1$M22)
+confusion_avg1 <- matrix(c(avg.m11.1,avg.m12.1,avg.m21.1,avg.m22.1), nrow=2, byrow = TRUE,
+                        dimnames = list(c("0", "1"),
+                                        c("0", "1")))
+confusion_avg1
+```
+
+overall error rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+error5 = 1-sum(diag(confusion_avg1))/sum(confusion_avg1)
+error5
+```
+
+true positive rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+TPR5 = confusion_avg1[2,2]/(confusion_avg1[2,1]+confusion_avg1[2,2])
+TPR5
+```
+
+false positive rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+FPR5 = confusion_avg1[1,2]/(confusion_avg1[1,1]+confusion_avg1[1,2])
+FPR5
+```
+
+
+First approach: build the baseline model
+========================================================
+We build the baseline model with log(shares) versus all variables except url
+
+```{r, echo=FALSE, comment=NA}
+summary(lm1)
+```
+
+First approach: asses the baseline model
+========================================================
+In order to asses the baseline model, we will report the confusion matrix, overall error rate, true positive rate, and false positive rate for the best model here.
+To get more accurate result, we will average these quantities across multiple train/test splits. And we will use the method 1 metioned above, which is collecting all predictions and corresponding "viral" value from all test set and put them in one confusion matrix, calculating overall error rate, true positive rate, and false positive rate base on this confusion matrix. Here is the oncusion matrix:
+
+```{r, include=FALSE, message=FALSE, warning=FALSE, comment=NA}
+m11.2 <- vector()
+m12.2 <- vector()
+m21.2 <- vector()
+m22.2 <- vector()
+
+ii = 1:100
+foreach (i = ii, .combine='c') %do% {
+  i.train <- sample (nrow (online_news), size=nrow (online_news) *.8, replace=FALSE)
+  online_train <- online_news [ i.train, ]
+  online_test  <- online_news [- i.train,]
+  online_test_predict3 = predict(lm1, online_test)
+  yhat_test_online3 = ifelse(online_test_predict3 > log(1400), 1, 0)
+  y = online_test$viral
+  confusion_out3 = table(y = y, yhat = yhat_test_online3)
+  m11.2[i] = confusion_out3[1,1]
+  m12.2[i] = confusion_out3[1,2]
+  m21.2[i] = confusion_out3[2,1]
+  m22.2[i] = confusion_out3[2,2]
+}
+
+m11.2 = data.frame(I = ii, M11 = m11.2)
+m12.2 = data.frame(I = ii, M12 = m12.2)
+m21.2 = data.frame(I = ii, M21 = m21.2)
+m22.2 = data.frame(I = ii, M22 = m22.2)
+sum.m11.2 = sum(m11.2$M11)
+sum.m12.2 = sum(m12.2$M12)
+sum.m21.2 = sum(m21.2$M21)
+sum.m22.2 = sum(m22.2$M22)
+confusion_sum2 <- matrix(c(sum.m11.2,sum.m12.2,sum.m21.2,sum.m22.2), nrow=2, byrow = TRUE,
+                         dimnames = list(c("0", "1"),
+                                         c("0", "1")))
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+confusion_sum2
+```
+
+overall error rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+error3 = 1-sum(diag(confusion_sum2))/sum(confusion_sum2)
+error3
+```
+
+true positive rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+TPR3 = confusion_sum2[2,2]/(confusion_sum2[2,1]+confusion_sum2[2,2])
+TPR3
+```
+
+false positive rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+FPR3 = confusion_sum2[1,2]/(confusion_sum2[1,1]+confusion_sum2[1,2])
+FPR3
+```
+
+First approach: summary
+========================================================
+According to the overall error rate, true positive rate and false positive rate we report (we only compares the result for method 1), the best model we build have lower overall error rate and false positive rate. As we only choose steps = 2 when using stepwise selection, so the true positive rate seems not improve a lot, and it's about the same for two models. But in general, the best model we build performs better. As we only choose steps = 2, I believe using stepwise selection and choose higher/appropriate steps will help us build a better model.
+
+
+Second approach: build the best model
+========================================================
+- First, try on a model with viral versus all variables except url and shares
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+lm3 = lm(viral ~ . - url - shares, data=online_train)
+summary(lm3)
+```
+
+- Second, drop things that seem (nearly) perfectly collinear with other variables
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+lm4 = lm(viral ~ . - url - self_reference_min_shares - self_reference_max_shares
+           - weekday_is_sunday - is_weekend -
+           avg_positive_polarity - max_positive_polarity - min_negative_polarity - max_negative_polarity - abs_title_sentiment_polarity - shares,
+         data=online_train)
+summary(lm4)
+```
+
+- Third, use stepwise selection to build a "best" model
+In order to save the running time of the program，we choose steps = 2 here, to improve just a little bit from the baseline model
+
+```{r, include=FALSE, message=FALSE, warning=FALSE, comment=NA}
+lm_step2 = step(lm4, scope=~(.)^2, steps = 2)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+getCall(lm_step2)
+summary(lm_step2)
+```
+
+Second approach: asses the "best" model
+========================================================
+In order to asses the "best" model, we will report the confusion matrix, overall error rate, true positive rate, and false positive rate for the best model here.
+To get more accurate result, we will average these quantities across multiple train/test splits. And we will use the method 1 metioned above, which is collecting all predictions and corresponding "viral" value from all test set and put them in one confusion matrix, calculating overall error rate, true positive rate, and false positive rate base on this confusion matrix. Here is the confusion matrix:
+
+```{r, include=FALSE, message=FALSE, warning=FALSE, comment=NA}
+m11.3 <- vector()
+m12.3 <- vector()
+m21.3 <- vector()
+m22.3 <- vector()
+
+ii = 1:100
+foreach (i = ii, .combine='c') %do% {
+  i.train <- sample (nrow (online_news), size=nrow (online_news) *.8, replace=FALSE)
+  online_train <- online_news [ i.train, ]
+  online_test  <- online_news [- i.train,]
+  phat_test_online = predict(lm_step2, online_test)
+  yhat_test_online4 = ifelse(phat_test_online > 0.5, 1, 0)
+  confusion_out4 = table(y = online_test$viral, yhat = yhat_test_online4)
+  m11.3[i] = confusion_out4[1,1]
+  m12.3[i] = confusion_out4[1,2]
+  m21.3[i] = confusion_out4[2,1]
+  m22.3[i] = confusion_out4[2,2]
+}
+m11.3 = data.frame(I = ii, M11 = m11.3)
+m12.3 = data.frame(I = ii, M12 = m12.3)
+m21.3 = data.frame(I = ii, M21 = m21.3)
+m22.3 = data.frame(I = ii, M22 = m22.3)
+sum.m11.3 = sum(m11.3$M11)
+sum.m12.3 = sum(m12.3$M12)
+sum.m21.3 = sum(m21.3$M21)
+sum.m22.3 = sum(m22.3$M22)
+confusion_sum3 <- matrix(c(sum.m11.3,sum.m12.3,sum.m21.3,sum.m22.3), nrow=2, byrow = TRUE,
+                         dimnames = list(c("0", "1"),
+                                         c("0", "1")))
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+confusion_sum3
+```
+
+overall error rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+error4 = 1-sum(diag(confusion_sum3))/sum(confusion_sum3)
+error4
+```
+
+true positive rate: 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+TPR4 = confusion_sum3[2,2]/(confusion_sum3[2,1]+confusion_sum3[2,2])
+TPR4
+```
+
+false positive rate:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, comment=NA}
+FPR4 = confusion_sum3[1,2]/(confusion_sum3[1,1]+confusion_sum3[1,2])
+FPR4
+```
+
+Summary: which one to choose?
+========================================================
+First of all, we should declare that we use exactly the same way to build the best model in both "regress first and threshold second" and "threshold first and regress second" and use the exactly same way to create the confusion matrix and calculate true positive rate, false positive rate and overall error rate. Therefore, the quantities are comparable.
+
+Second, about which approach is better, "regress first and threshold second" or "threshold first and regress second". I would like to see it's hard to have an exact conclusion. It will depend on the purpose of your model to choose one of these two approaches. 
+
+"Regress first and threshold second" has higher true positive rate, so if our only purpose is to find out as much "viral" articles as we can, and don't care about errors model makes when predicting "not viral" articles, then it would be better for us to choose approach 1.
+
+However, "Threshold first and regress second" has lower overall error rate and false positive rate, so it makes less mistakes in total. For people who are more conservative and trying to make less mistakes when predicting, the second approach will be better.
+
+I would choose second approach in order to control the error rate of the model to a lower level.
+
+

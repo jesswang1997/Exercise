@@ -1,0 +1,170 @@
+---
+title: "Question 1"
+output: github_document
+---
+Firstly, we summarize the statistics of the data SaratogaHouses.
+```{r, echo=FALSE, message=FALSE, comment=NA}
+library(tidyverse)
+library(mosaic)
+library(FNN)
+library(foreach)
+library(doMC)
+data(SaratogaHouses)
+summary(SaratogaHouses)
+```
+Then, we set up the medium model by hand, by adding the main 11 variables sequentially and the concerning interactions.
+We include the first variable lotSize and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm1 = lm(price ~ lotSize, data=SaratogaHouses)
+coefficients(lm1)
+```
+We include the variable lotSize and age, and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm2 = lm(price ~ lotSize + age, data=SaratogaHouses)
+coefficients(lm2)
+```
+We include the variable lotSize, age and the interaction of lotSize and age, and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm3 = lm(price ~ lotSize + age + lotSize*age, data=SaratogaHouses)
+coefficients(lm3)
+```
+We include the variable lotSize, age, the interaction of lotSize and age, and the living Area and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm4 = lm(price ~ lotSize + age + lotSize*age + livingArea, data=SaratogaHouses)
+coefficients(lm4)
+```
+We include the variable lotSize, age, the interaction of lotSize and age,the living Area, the pctCollege, and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm5 = lm(price ~ lotSize + age + lotSize*age + livingArea + pctCollege, data=SaratogaHouses)
+coefficients(lm5)
+```
+We include the variable lotSize, age, the interaction of lotSize and age,the living Area, the pctCollege, bedrooms, and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm6 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms, data=SaratogaHouses)
+coefficients(lm6)
+```
+We include the variable lotSize, age, the interaction of lotSize and age,the living Area, the pctCollege, bedrooms, fireplaces, and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm7 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms + fireplaces, data=SaratogaHouses)
+coefficients(lm7)
+```
+We include the variable lotSize, age, the interaction of lotSize and age,the living Area, the pctCollege, bedrooms, fireplaces, bathrooms, and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm8 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ fireplaces+ bathrooms, data=SaratogaHouses)
+coefficients(lm8)
+```
+We include the variable lotSize, age, the interaction of lotSize a,nd age,the living Area, the pctCollege, bedrooms, fireplaces, bathrooms, rooms and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm9 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ fireplaces+ bathrooms+ rooms, data=SaratogaHouses)
+coefficients(lm9)
+```
+We include the variable lotSize, age, the interaction of lotSize a,nd age,the living Area, the pctCollege, bedrooms, fireplaces, bathrooms, rooms, heating, and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm10 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ fireplaces+ bathrooms+ rooms+ heating, data=SaratogaHouses)
+coefficients(lm10)
+```
+We include the variable lotSize, age, the interaction of lotSize a,nd age,the living Area, the pctCollege, bedrooms, fireplaces, bathrooms, rooms, heating, fuel, and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm11 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms + fireplaces+ bathrooms+ rooms+ heating+ fuel, data=SaratogaHouses)
+coefficients(lm11)
+```
+We include the variable lotSize, age, the interaction of lotSize a,nd age,the living Area, the pctCollege, bedrooms, fireplaces, bathrooms, rooms, heating, fuel, and the central Air, and see the coefficients.
+```{r, echo=FALSE, comment=NA}
+lm12 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ fireplaces+ bathrooms+ rooms+ heating+ fuel + centralAir, data=SaratogaHouses)
+coefficients(lm12)
+```
+In order to judge the effect of different variables and interations, we set up the train sets and test sets to calculate the rmse of different models, and to figure out how much a variable and interation will affect the RMSE of the model.Then we can receive the root mean-squared prediction error of the 12 hand-built models.
+```{r, echo=FALSE, comment=NA}
+n = nrow(SaratogaHouses)
+n_train = round(0.8*n)
+n_test = n - n_train
+train_cases = sample.int(n, n_train, replace=FALSE)
+test_cases = setdiff(1:n, train_cases)
+saratoga_train = SaratogaHouses[train_cases,]
+saratoga_test = SaratogaHouses[test_cases,]
+lm1 = lm(price ~ lotSize, data=SaratogaHouses)
+lm2 = lm(price ~ lotSize + age, data=SaratogaHouses)
+lm3 = lm(price ~ lotSize + age + lotSize*age, data=SaratogaHouses)
+lm4 = lm(price ~ lotSize + age + lotSize*age + livingArea, data=SaratogaHouses)
+lm5 = lm(price ~ lotSize + age + lotSize*age + livingArea + pctCollege, data=SaratogaHouses)
+lm6 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms, data=SaratogaHouses)
+lm7 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ 
+           fireplaces, data=SaratogaHouses)
+lm8 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ 
+           fireplaces+ bathrooms, data=SaratogaHouses)
+lm9 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ 
+           fireplaces+ bathrooms+ rooms, data=SaratogaHouses)
+lm10 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ 
+            fireplaces+ bathrooms+ rooms+ heating, data=SaratogaHouses)
+lm11 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ 
+            fireplaces+ bathrooms+ rooms+ heating+ fuel, data=SaratogaHouses)
+lm12 = lm(price ~ lotSize + age + livingArea + lotSize*age + pctCollege+ bedrooms+ 
+            fireplaces+ bathrooms+ rooms+ heating+ fuel + centralAir, data=SaratogaHouses)
+yhat_test1 = predict(lm1, saratoga_test)
+yhat_test2 = predict(lm2, saratoga_test)
+yhat_test3 = predict(lm3, saratoga_test)
+yhat_test4 = predict(lm4, saratoga_test)
+yhat_test5 = predict(lm5, saratoga_test)
+yhat_test6 = predict(lm6, saratoga_test)
+yhat_test7 = predict(lm7, saratoga_test)
+yhat_test8 = predict(lm8, saratoga_test)
+yhat_test9 = predict(lm9, saratoga_test)
+yhat_test10 = predict(lm10, saratoga_test)
+yhat_test11 = predict(lm11, saratoga_test)
+yhat_test12 = predict(lm12, saratoga_test)
+rmse = function(y, yhat) {
+  sqrt( mean( (y - yhat)^2 ) )
+}
+```
+The following column show the rmse of the 12 models respectively.
+Relatively, we want to receive the smaller RMSE as we can. From the RMSE result below, we can see that by adding the interactions and the variables, the RMSE starts to decrease.
+And most importantly, the variable Living Area helps to decrease the RMSE a lot, which helps decrease the RMSE from 92059.85 to 68178.11, which shows a significant influence.
+Also, we can see that the final model, the model 12, which includes the 11 main effects leads to the smallest RMSE as 64853.2.
+```{r, echo=FALSE, comment=NA}
+rmse(saratoga_test$price, yhat_test1)
+rmse(saratoga_test$price, yhat_test2)
+rmse(saratoga_test$price, yhat_test3)
+rmse(saratoga_test$price, yhat_test4)
+rmse(saratoga_test$price, yhat_test5)
+rmse(saratoga_test$price, yhat_test6)
+rmse(saratoga_test$price, yhat_test7)
+rmse(saratoga_test$price, yhat_test8)
+rmse(saratoga_test$price, yhat_test9)
+rmse(saratoga_test$price, yhat_test10)
+rmse(saratoga_test$price, yhat_test11)
+rmse(saratoga_test$price, yhat_test12)
+```
+Now, we start to consider the KNN model
+Firstly, we set up the model matrix and scale it up, by considering the 11 main variables for the effects of the price. And we can receive the result of knn model.
+```{r, echo=FALSE, comment=NA}
+X = model.matrix( ~ lotSize + age + livingArea + pctCollege+ bedrooms+ 
+                    fireplaces+ bathrooms+ rooms+ heating+ fuel + centralAir -1, data=SaratogaHouses)
+X[14,] 
+SaratogaHouses[1,]  
+
+feature_sd = apply(X, 2, sd)
+X_std = scale(X, scale=feature_sd)
+k_grid = seq(5, 51, by=2)
+loo_mse = foreach(i = 1:n, .combine='rbind') %dopar% {
+  X_train = X_std[-i,]
+  X_test = X_std[i,]
+  y_train = SaratogaHouses$price[-i]
+  y_test = SaratogaHouses$price[i]
+  knn_mse_out = foreach(k = k_grid, .combine='c') %do% {
+    knn_fit = knn.reg(X_train, X_test, y_train, k)
+    (y_test - knn_fit$pred)^2  
+  }
+  
+  knn_mse_out
+}
+
+knn_rmse = sqrt(colMeans(loo_mse))
+```
+Finally, by drawing the plot of the relationship of k_grid and the knn_rmse, we can generally say that as k=15, the RMSE is the smallest, so we can use it as our best model.
+```{r, echo=FALSE, comment=NA}
+plot(k_grid, knn_rmse)
+```
+
+In a conclusion, for the hand-built linear model, we can say that there are 11 main variables will affect the price, which includes lotSize, age, the number of bedrooms, and the most importantly, the square of Living Area, according to the change of RMSE. So for considering the prices of the houses, it is important to consider these 11 variables and especially the square of living area.
+
+We also set up a nonparametric model, the knn model, the result shows that as k=5, the rmse is the smallest which is lower than 66500, and it is close to the rmse value of model 12.
