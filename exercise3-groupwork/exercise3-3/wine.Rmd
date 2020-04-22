@@ -1,0 +1,107 @@
+---
+title: "Exercise3-3 Xuechun Wang & Hanqi Liu"
+output: md_document
+---
+
+Exercise 3-3
+========================================================
+- Course: Data Mining and Statistical Learning (ECO395M)
+- Name: Xuechun Wang (xw5996)、Hanqi Liu(hl27963)
+- Date: April 20th, 2020
+- Data Source: wine.csv
+
+
+Introduction
+========================================================
+The data in wine.csv contains information on 11 chemical properties of 6500 different bottles of vinho verde wine from northern Portugal. In addition, two other variables about each wine are recorded: color and quality. We'll run both PCA and a clustering algorithm here, trying to find the best methos that is easily capable of distinguishing the reds from the whites, using only the "unsupervised" information contained in the data on chemical properties. Also, we'll check whether this technique capable of sorting the higher from the lower quality wines.
+
+
+Distinguish the reds from whites - PCA 
+========================================================
+
+- choose quantity of components (unsupervised chemical properties)
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+library(factoextra)
+library(cluster)
+library(readr)
+data <- read.csv("~/Desktop/wine.csv", sep = ',')
+str(data)
+
+df <- data[,-c(12,13)]
+str(df)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+pc <- princomp(df,cor=TRUE)
+screeplot(pc,type='lines')
+summary(pc)
+```
+
+From the screeplot and the result, we find that the optimal number of principal component is 4. The cumulative proportion of variance is 0.73, which means 73% of the imformation contains in the four components. Therefore, we should choose use 4 components.
+
+I use both 4 components and 3 components to do the visualization. However, the plot we made with either 3 components or 4 components are not clear and useful for us to achieve the goals of distinguishing reds from whites. Therfore, I turned to 2 components.
+
+- visulazation
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+score <- as.data.frame(pc$scores)
+color <- data[,13]
+quality <- data[,12]
+score <- cbind(color,score)
+ggplot(data = score, aes(x=Comp.1, y=Comp.2, color = color)) + geom_point(size = 0.6)
+```
+
+Using the 1st component as x-axis and 2nd component as y-axis, with the color of points representing the type of wine (red and white). We can easily distinguish the reds from the whites using this method.
+
+
+Distinguish the reds from whites - Clustering (kmeans)
+========================================================
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+km <- kmeans(df, 2, nstart = 25)
+km
+```
+
+From the result, we can find the observations are divided into 2 clusters. The size of the two clusters is 2808 and 3689 respectively.
+
+Then we visualize the result of the clustering method:
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+fviz_cluster(km, df, geom = 'point')
+```
+
+
+Distinguish the reds from whites - Conclusion 
+========================================================
+
+Comparing the two plots, for the variable 'color' of the wine, in k-means clustering plot, there is an overlap between two clusters, however, the two groups in PCA plot are more separated from each other, which means PCA method performs better.
+
+
+Extension: Distinguish the reds from whites 
+========================================================
+
+- PCA
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+score1 <- as.data.frame(pc$scores)
+quality <- data[,12]
+score1 <- cbind(quality,score1)
+ggplot(data = score1, aes(x=Comp.1, y=Comp.2, color = factor(quality))) + geom_point(size = 0.6)
+```
+
+
+- Clustering: kmeans
+
+Since the value of quality in the data set is from 3 to 9, we set the number of clusters as 7
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+km1 <- kmeans(df, 7, nstart = 24)
+fviz_cluster(km1, df, geom = 'point')
+```
+
+- Conclusion
+
+From the plots, it can be found that both the PCA and k-means clustering plots are not well separated. Both method is not appropriate for distinguishing the quality of the wine.
+
+
+

@@ -1,0 +1,112 @@
+---
+title: "Exercise3-1 Xuechun Wang & Hanqi Liu"
+output: md_document
+---
+
+Exercise 3-1
+========================================================
+- Course: Data Mining and Statistical Learning (ECO395M)
+- Name: Xuechun Wang (xw5996)、Hanqi Liu(hl27963)
+- Date: April 19th, 2020
+- Data Source: greenbuildings.csv
+
+
+Introduction
+========================================================
+The greenbuildings.csv contains data on 7,894 commercial rental properties from across the United States. Of these, 685 properties have been awarded either LEED or EnergyStar certification as a green building. Here, we're trying to build the best predictive model possible for price and to use this model to quantify the average change in rental income per square foot (whether in absolute or percentage terms) associated with green certification, holding other features of the building constant.
+
+
+The best model - boosted regression trees
+========================================================
+
+- Why?
+
+1. Why regression trees? Trees handles categorical/numeric x and y nicely and don’t have to think about the scale of x’s. In this case, we have a lot of explanatory variables. In stead of considering the scale of x's and make right transformation for using regression variable selection model, regression trees will be better a better choice.
+2. Why boosted regression trees? Regression trees' step function is crude, does not give the best predictive performance. Boosting is a numerical optimization technique for minimizing the loss function by adding, at each step, a new tree that best reduces (steps down the gradient of) the loss function. Using boosted regression trees can help us get a better model. Also, we hope to quantify the average change in rental income per square foot associated with green certification. Using partial dependence functions after boosted regression trees can help us achieve this.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(randomForest)
+library(gbm)
+library(pdp)
+library(readr)
+
+greenbuildings <- read_csv("~/Desktop/greenbuildings.csv")
+
+n = nrow(greenbuildings)
+n_train = floor(0.8*n)
+n_test = n - n_train
+train_cases = sample.int(n, size=n_train, replace=FALSE)
+green_train = greenbuildings[train_cases,]
+green_test = greenbuildings[-train_cases,]
+
+y_all = greenbuildings$Rent
+x_all = model.matrix(~., data=greenbuildings)
+
+y_train = y_all[train_cases]
+x_train = x_all[train_cases,]
+
+y_test = y_all[-train_cases]
+x_test = x_all[-train_cases,]
+```
+
+- First, we start with n.trees=500, which is a relatively large number of iterations. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+boost = gbm(Rent ~ . - CS_PropertyID - LEED - Energystar - total_dd_07, 
+             data = green_train,
+             interaction.depth=4, n.trees=500, shrinkage=.05)
+```
+
+Notes: for the green certification, I use a single "green certified" category rather than considering LEED and EnergyStar separately; also, for the number of degree days, I use heating and cooling separately rather than using a total number.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+gbm.perf(boost)
+```
+
+Looking at the error curve: stops decreasing much at somewhere between 100-200.
+
+- Then we refit with a more suitable number of iterations: n.trees=200.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+boost1 = gbm(Rent ~ . - CS_PropertyID - LEED - Energystar - total_dd_07, 
+             data = green_train,
+             interaction.depth=4, n.trees=200, shrinkage=.05)
+boost1
+gbm.perf(boost)
+```
+ 
+- Calculate the RMSE
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+yhat_test_gbm = predict(boost1, green_test, n.trees=200)
+(yhat_test_gbm - y_test)^2 %>% mean %>% sqrt
+```
+
+As we can see the result, the RMSE is relatively low, which means the model works pretty good.
+
+- Relative importance measures: how much each variable reduces the MSE
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+summary(boost1)
+```
+
+As we can see in the result, cluster rent and size are the most important factors.
+
+Average change in Rent associated with green certification
+========================================================
+
+- Exploring the fit with partial dependence functions
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+plot(boost1, 'green_rating')
+p1 = pdp::partial(boost1, pred.var = 'green_rating', n.trees=200)
+p1
+```
+
+As we can see in the result, the green certification don't have a huge impact on rental income per square foot, having green certification increases the rent by 0.25 per square foot.
+
+Conclusion
+========================================================
+
+In this case, we choose boosted regression trees to build the best rental price predicted model using data from greenbuildings.csv, and with partial dependence functions we can find that having green certification increases the rent by 0.25 per square foot.
