@@ -60,7 +60,7 @@ boost = gbm(Rent ~ . - CS_PropertyID - LEED - Energystar - total_dd_07,
 
 Notes: for the green certification, I use a single "green certified" category rather than considering LEED and EnergyStar separately; also, for the number of degree days, I use heating and cooling separately rather than using a total number.
 
-Looking at the error curve: stops decreasing much at somewhere between 100-200.
+Looking at the error curve: stops decreasing much at somewhere around 100.
 
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
