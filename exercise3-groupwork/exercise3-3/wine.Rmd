@@ -57,12 +57,12 @@ Using the 1st component as x-axis and 2nd component as y-axis, with the color of
 Distinguish the reds from whites - Clustering (kmeans)
 ========================================================
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, include=FALSE, message=FALSE, warning=FALSE}
 km <- kmeans(df, 2, nstart = 25)
 km
 ```
 
-From the result, we can find the observations are divided into 2 clusters. The size of the two clusters is 2808 and 3689 respectively.
+From the result, we can find the observations are divided into 2 clusters. The size of the two clusters is 2808 and 3689 respectively (the results is not showed in this report, see in the Rmd file).
 
 Then we visualize the result of the clustering method:
 
