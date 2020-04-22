@@ -52,7 +52,7 @@ x_test = x_all[-train_cases,]
 
 - First, we start with n.trees=500, which is a relatively large number of iterations. 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, include=FALSE, message=FALSE, warning=FALSE}
 boost = gbm(Rent ~ . - CS_PropertyID - LEED - Energystar - total_dd_07, 
              data = green_train,
              interaction.depth=4, n.trees=500, shrinkage=.05)
@@ -60,38 +60,43 @@ boost = gbm(Rent ~ . - CS_PropertyID - LEED - Energystar - total_dd_07,
 
 Notes: for the green certification, I use a single "green certified" category rather than considering LEED and EnergyStar separately; also, for the number of degree days, I use heating and cooling separately rather than using a total number.
 
+Looking at the error curve: stops decreasing much at somewhere between 100-200.
+
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 gbm.perf(boost)
 ```
-
-Looking at the error curve: stops decreasing much at somewhere between 100-200.
 
 - Then we refit with a more suitable number of iterations: n.trees=200.
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, include=FALSE, message=FALSE, warning=FALSE}
 boost1 = gbm(Rent ~ . - CS_PropertyID - LEED - Energystar - total_dd_07, 
              data = green_train,
              interaction.depth=4, n.trees=200, shrinkage=.05)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 boost1
-gbm.perf(boost)
+gbm.perf(boost1)
 ```
  
 - Calculate the RMSE
+
+As we can see the result, the RMSE is relatively low, which means the model works pretty good.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 yhat_test_gbm = predict(boost1, green_test, n.trees=200)
 (yhat_test_gbm - y_test)^2 %>% mean %>% sqrt
 ```
 
-As we can see the result, the RMSE is relatively low, which means the model works pretty good.
-
 - Relative importance measures: how much each variable reduces the MSE
+
+As we can see in the result, cluster rent and size are the most important factors.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 summary(boost1)
 ```
 
-As we can see in the result, cluster rent and size are the most important factors.
 
 Average change in Rent associated with green certification
 ========================================================
