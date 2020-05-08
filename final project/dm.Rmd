@@ -2,7 +2,7 @@
 title: "Gestational Diabetes Mellitus Prediction"
 author: "Xuechun Wang"
 date: "May 8, 2020"
-output: pdf_document
+output: md_document
 ---
 
 ```{r libraries, include=FALSE}
