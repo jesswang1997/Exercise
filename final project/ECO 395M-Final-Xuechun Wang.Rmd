@@ -2,8 +2,15 @@
 title: "Gestational Diabetes Mellitus Prediction"
 author: "Xuechun Wang"
 date: "May 8, 2020"
-output: md_document
+output:
+  pdf_document:
+    latex_engine: xelatex
+latex_engine: pdfatex
 ---
+
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
 
 ```{r libraries, include=FALSE}
 library(readr)
@@ -47,6 +54,7 @@ y_test = vf_test$gestational.dm
 x_test = x_all[-train_cases,]
 ```
 
+
 #Abstract
 
 Due to the increase of gestational age, the prevalence of obesity, the change of dietary habits, and the lack of exercise, the prevalence rate has increased a lot in the past 15 years. Getting gestational diabetes mellitus is getting more and more common for pregnant women and threaten more and more pregnant women and babies' life. Therefore, based on an open access physiological data, we build up several gestational diabetes prediction models and among them, trees perform the best. With the model, we also find the most important factor in the gestational diabetes prediction is pregestational bmi and central armellini fat. Therefore, we suggest that for pregnant women and those who have a pregnancy plan, keeping an ideal weight is really important.
@@ -86,20 +94,35 @@ This data is an open access data from the "Visceral adipose tissue measurements 
 ###Definition
 
 There are 15 variables in the original data set:
+
 - Number: Unique ID for the case.
+
 - Age (years): Age in years.
+
 - Ethnicity: Ethnicity (0 = white; 1 = not white).
+
 - Diabetes mellitus: Previous diabetes mellitus (0 = no; 1 = yes).
+
 - Mean diastolic BP: Mean diastolic blood pressure in mmHg.
+
 - Mean systolic BP: Mean systolic blood pressure in mmHg.
+
 - Central Armellini fat (mm): Maternal visceral adipose tissue measurement in mm.
+
 - Current Gestational age: Age (weeks of pregnancy, days of pregnancy).
+
 - Pregnancies (number): Number of pregnancies.
+
 - First fasting glucose (mg/dl): First measured fasting glucose.
+
 - BMI pregestational (kg/m): Pregestational body mass index.
+
 - Gestational age at birth: Age (weeks of pregnancy, days of pregnancy).
+
 - Type of delivery: 0 = vaginal birth; 1 = cesarian section.
+
 - Child birth weight (g): Birthweight in grams.
+
 - Gestational DM (current gestational diabetes): 0 = no; 1 = yes.
 
 ###Data Cleaning
@@ -164,7 +187,9 @@ For the lasso regression I will use "glmnet" to build up the model with train se
 ###Trees
 
 Trees handles categorical/numeric x and y nicely and don’t have to think about the scale of x’s. In this case, we have a lot of explanatory variables. In stead of considering the scale of x’s and make right transformation for using regression variable selection model, regression trees will be a really good choice. Regression trees’ step function is crude, does not give the best predictive performance.So we use Random Forest and boosted regression tree rather than the basic tree models. 
+
 Random Forest is great with high dimensional data, has quicker training speed, has low bias and can handle unbalanced data. So using Random Forest here also gives us a better model. We will build the model using train set and using test set to predict and check the RMSE. Also, I'll show a plot of the forest (performance as a function of iteration number) and also a variable importance plot shows how much SSE decreases from including each variable. 
+
 Boosting is a numerical optimization technique for minimizing the loss function by adding, at each step, a new tree that best reduces (steps down the gradient of) the loss function. Using boosted regression trees can help us get a better model. I'll build up the boosted regression trees with relatively large number of trees, and then agjust the n.trees to the right number by checking the error curve. Then we use test set to check the RMSE and measure the relative importance. 
 
 #Results and Analysis
@@ -266,6 +291,7 @@ summary(boost2)
 ```
 
 #Conclusion
+
 Compare all the models, due to the limited data sets, lasso don't fits well. For three other models, boosted regression trees performs better than random forest and linear probability model. 
 
 From the prediction by 3 models, pregestational bmi is always the imporatnt or even the most important factor in the model. Central armellini fat is also quite important. Besides that, age, times of pregnancy, blood pressure and gestational age at birth will all increase the probability of getiting diabetes mellitus to some extent. 
@@ -275,11 +301,15 @@ Therefore, for pregnant women, besides getting enough nutrition, it's also very 
 #Deficiencies
 
 - Lack of data. The limited data size limits the fitting of the model and makes the prediction result of the model more error prone
+
 - Limited understanding of lasso regression
+
 - The overall project is not problem orientation enough. Due to the limitation of technology and knowledge, some analysis that was originally intended to be realized could not be realized
 
 
+
 #Refernces
+
 Rocha, A. d. S., von Diemen, L., Kretzer, D., Matos, S., Rombaldi Bernardi, J., & Magalhães, J. A. (2020). Visceral adipose tissue measurements during pregnancy (version 1.0.0). PhysioNet. https://doi.org/10.13026/p729-7p53.
 
 Kongtang. (2016). How is gestational diabetes different from diabetic pregnancy. Sohu. https://www.sohu.com/a/122108038_332478
